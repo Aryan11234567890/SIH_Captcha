@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Interaction Logger</title>
+</head>
+<body>
+    <h1>User Interaction Logger</h1>
+    <p>Move your mouse, type, or click anywhere on this page. Data will be sent to the server.</p>
+    <script>
+        const userData = {
+            mouseMovements: [],
+            typingSpeed: [],
+            clicks: 0,
+            keypresses: 0,
+        };
+        document.addEventListener('mousemove', (event) => {
+            userData.mouseMovements.push({
+                x: event.clientX,
+                y: event.clientY,
+                timestamp: Date.now()
+            });
+        });
+        document.addEventListener('click', () => {
+            userData.clicks += 1;
+        });
+        let lastKeyPressTime = Date.now();
+        document.addEventListener('keypress', () => {
+            const currentTime = Date.now();
+            const timeBetweenKeys = currentTime - lastKeyPressTime;
+            userData.typingSpeed.push(timeBetweenKeys);
+            lastKeyPressTime = currentTime;
+            userData.keypresses += 1;
+        });
+        function sendDataToServer() {
+            const dataSummary = {
+                mouseMovements: userData.mouseMovements.length,
+                avgTypingSpeed: userData.typingSpeed.length > 0 ? userData.typingSpeed.reduce((a, b) => a + b) / userData.typingSpeed.length : 0,
+                clicks: userData.clicks,
+                keypresses: userData.keypresses,
+            };
+            fetch('http://localhost:3000/collect', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dataSummary)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Data saved:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+            userData.mouseMovements = [];
+            userData.typingSpeed = [];
+            userData.clicks = 0;
+            userData.keypresses = 0;
+        }
+        setInterval(sendDataToServer, 1000);
+    </script>
+</body>
+</html>
